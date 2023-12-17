@@ -20,6 +20,9 @@ public class MapDisplay extends AbstractButton implements
 
     private static Image[][][] tileImageCache;
 
+    public void centerScroll(int coord, int coord1) {
+    }
+
     private class UndoableTileChange {
         public int x, y, oldTile, newTile;
 

@@ -205,10 +205,10 @@ public class MapEditor extends ToolModule implements ActionListener,
 				"maskOverscan", false, 'o'));
 		menuBar.add(menu);
 
-        menu = new JMenu("Tools");
-        menu.add(ToolModule.createJMenuItem("Export as Image", 'i', "control i",
-                "exportAsImage", this));
-        menuBar.add(menu);
+		menu = new JMenu("Tools");
+		menu.add(ToolModule.createJMenuItem("Export as Image", 'i', "control i",
+				"exportAsImage", this));
+		menuBar.add(menu);
 
 		mainWindow.setJMenuBar(menuBar);
 
@@ -327,6 +327,7 @@ public class MapEditor extends ToolModule implements ActionListener,
 		mapDisplay.init();
 		contentPanel.add(mapDisplay, BorderLayout.CENTER);
 
+		// Note - xScroll / yScroll bounds get overridden later
 		xScroll = new JScrollBar(JScrollBar.HORIZONTAL, 0,
 				mapDisplay.getScreenWidth(), 0, MapData.WIDTH_IN_TILES);
 		xScroll.addAdjustmentListener(this);
@@ -360,6 +361,7 @@ public class MapEditor extends ToolModule implements ActionListener,
 		mainWindow.setLocationByPlatform(true);
 		mainWindow.validate();
 		mainWindow.setResizable(true);
+		updateXYScrollBars();
 	}
 
 	private void loadTilesetNames() {
@@ -395,8 +397,7 @@ public class MapEditor extends ToolModule implements ActionListener,
 			mapDisplay.repaint();
 		} else if (o instanceof int[]) {
 			int[] coords = (int[]) o;
-			mapDisplay.setMapXY(coords[0] / MapData.TILE_WIDTH, coords[1]
-					/ MapData.TILE_HEIGHT);
+			mapDisplay.centerScroll(coords[0], coords[1]);
 			updateXYFields();
 			updateXYScrollBars();
 			mapDisplay.repaint();
@@ -432,10 +433,14 @@ public class MapEditor extends ToolModule implements ActionListener,
 
 	private void updateXYScrollBars() {
 		xScroll.removeAdjustmentListener(this);
-		xScroll.setValue(mapDisplay.getMapX());
+		xScroll.setMinimum(mapDisplay.getMinScrollX());
+		xScroll.setMaximum(mapDisplay.getMaxScrollX());
+		xScroll.setValue(mapDisplay.getScrollX());
 		xScroll.addAdjustmentListener(this);
 		yScroll.removeAdjustmentListener(this);
-		yScroll.setValue(mapDisplay.getMapY());
+		yScroll.setValue(mapDisplay.getScrollY());
+		yScroll.setMinimum(mapDisplay.getMinScrollY());
+		yScroll.setMaximum(mapDisplay.getMaxScrollY());
 		yScroll.addAdjustmentListener(this);
 	}
 
@@ -774,8 +779,8 @@ public class MapEditor extends ToolModule implements ActionListener,
 				tptNum = Integer.parseInt(tpt, 16);
 			} catch (NumberFormatException nfe) {
 				JOptionPane.showMessageDialog(mainWindow, "\"" + tpt
-						+ "\" is not a valid hexidecimal number.\n"
-						+ "Search was aborted.", "Error",
+								+ "\" is not a valid hexidecimal number.\n"
+								+ "Search was aborted.", "Error",
 						JOptionPane.ERROR_MESSAGE);
 				return;
 			}
@@ -866,92 +871,92 @@ public class MapEditor extends ToolModule implements ActionListener,
 						JOptionPane.ERROR_MESSAGE);
 			}
 		} else if (e.getActionCommand().equals("exportAsImage")) {
-            final JTextField inputX = ToolModule.createSizedJTextField(
-                    Integer.toString(MapData.WIDTH_IN_TILES).length(), true);
-            final JTextField inputX2 = ToolModule.createSizedJTextField(
-                    Integer.toString(MapData.WIDTH_IN_TILES).length(), true);
-            final JTextField inputY = ToolModule.createSizedJTextField(
-                    Integer.toString(MapData.HEIGHT_IN_TILES).length(), true);
-            final JTextField inputY2 = ToolModule.createSizedJTextField(
-                    Integer.toString(MapData.HEIGHT_IN_TILES).length(), true);
-            final Object[] message = {
-                    "X1:", inputX,
-                    "Y1:", inputY,
-                    "X2:", inputX2,
-                    "Y2:", inputY2
-            };
+			final JTextField inputX = ToolModule.createSizedJTextField(
+					Integer.toString(MapData.WIDTH_IN_TILES).length(), true);
+			final JTextField inputX2 = ToolModule.createSizedJTextField(
+					Integer.toString(MapData.WIDTH_IN_TILES).length(), true);
+			final JTextField inputY = ToolModule.createSizedJTextField(
+					Integer.toString(MapData.HEIGHT_IN_TILES).length(), true);
+			final JTextField inputY2 = ToolModule.createSizedJTextField(
+					Integer.toString(MapData.HEIGHT_IN_TILES).length(), true);
+			final Object[] message = {
+					"X1:", inputX,
+					"Y1:", inputY,
+					"X2:", inputX2,
+					"Y2:", inputY2
+			};
 
-            int option = JOptionPane.showConfirmDialog(null, message, "Login", JOptionPane.OK_CANCEL_OPTION);
-            if (option != JOptionPane.OK_OPTION) {
-                return;
-            }
+			int option = JOptionPane.showConfirmDialog(null, message, "Login", JOptionPane.OK_CANCEL_OPTION);
+			if (option != JOptionPane.OK_OPTION) {
+				return;
+			}
 
-            final int imgX1 = Integer.parseInt(inputX.getText());
-            final int imgY1 = Integer.parseInt(inputY.getText());
-            final int imgX2 = Integer.parseInt(inputX2.getText());
-            final int imgY2 = Integer.parseInt(inputY2.getText());
+			final int imgX1 = Integer.parseInt(inputX.getText());
+			final int imgY1 = Integer.parseInt(inputY.getText());
+			final int imgX2 = Integer.parseInt(inputX2.getText());
+			final int imgY2 = Integer.parseInt(inputY2.getText());
 
-            final int imgX = Math.min(imgX1, imgX2);
-            final int imgY = Math.min(imgY1, imgY2);
-            final int imgW = Math.max(imgX1, imgX2) - imgX + 1;
-            final int imgH = Math.max(imgY1, imgY2) - imgY + 1;
+			final int imgX = Math.min(imgX1, imgX2);
+			final int imgY = Math.min(imgY1, imgY2);
+			final int imgW = Math.max(imgX1, imgX2) - imgX + 1;
+			final int imgH = Math.max(imgY1, imgY2) - imgY + 1;
 
-            final int oldScreenWidth = mapDisplay.getScreenWidth();
-            final int oldScreenHeight = mapDisplay.getScreenHeight();
-            final int oldX = mapDisplay.getMapX();
-            final int oldY = mapDisplay.getMapY();
+			final int oldScreenWidth = mapDisplay.getScreenWidth();
+			final int oldScreenHeight = mapDisplay.getScreenHeight();
+			final int oldX = mapDisplay.getMapX();
+			final int oldY = mapDisplay.getMapY();
 
-            mapDisplay.setScreenSize(imgW, imgH);
-            mapDisplay.setMapXY(imgX, imgY);
+			mapDisplay.setScreenSize(imgW, imgH);
+			mapDisplay.setMapXY(imgX, imgY);
 
-            final BufferedImage bImg = new BufferedImage(imgW * MapData.TILE_WIDTH + 2,
-                    imgH * MapData.TILE_HEIGHT + 2, BufferedImage.TYPE_INT_RGB);
-            Graphics ig = bImg.createGraphics();
-            mapDisplay.paintComponent(ig);
+			final BufferedImage bImg = new BufferedImage(imgW * MapData.TILE_WIDTH + 2,
+					imgH * MapData.TILE_HEIGHT + 2, BufferedImage.TYPE_INT_RGB);
+			Graphics ig = bImg.createGraphics();
+			mapDisplay.paintComponent(ig);
 
-            mapDisplay.setScreenSize(oldScreenWidth, oldScreenHeight);
-            mapDisplay.setMapXY(oldX, oldY);
+			mapDisplay.setScreenSize(oldScreenWidth, oldScreenHeight);
+			mapDisplay.setMapXY(oldX, oldY);
 
-            try
-            {
-                JFileChooser jfc = new JFileChooser();
-                jfc.setFileFilter(new FileFilter()
-                {
-                    public boolean accept(File f)
-                    {
-                        if ((f.getAbsolutePath().toLowerCase().endsWith(".png")
-                                || f.isDirectory())
-                                && f.exists())
-                        {
-                            return true;
-                        }
-                        return false;
-                    }
+			try
+			{
+				JFileChooser jfc = new JFileChooser();
+				jfc.setFileFilter(new FileFilter()
+				{
+					public boolean accept(File f)
+					{
+						if ((f.getAbsolutePath().toLowerCase().endsWith(".png")
+								|| f.isDirectory())
+								&& f.exists())
+						{
+							return true;
+						}
+						return false;
+					}
 
-                    public String getDescription()
-                    {
-                        return "*.png";
-                    }
-                });
+					public String getDescription()
+					{
+						return "*.png";
+					}
+				});
 
-                if (jfc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                    File file = jfc.getSelectedFile();
-                    if (!file.getAbsolutePath().toLowerCase().endsWith((".png"))) {
-                        file = new File(jfc.getSelectedFile() + ".png");
-                    }
-                    BufferedImage croppedImage = bImg.getSubimage(1, 1,
-                            imgW * MapData.TILE_WIDTH, imgH * MapData.TILE_HEIGHT);
-                    ImageIO.write(croppedImage, "png", file);
+				if (jfc.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+					File file = jfc.getSelectedFile();
+					if (!file.getAbsolutePath().toLowerCase().endsWith((".png"))) {
+						file = new File(jfc.getSelectedFile() + ".png");
+					}
+					BufferedImage croppedImage = bImg.getSubimage(1, 1,
+							imgW * MapData.TILE_WIDTH, imgH * MapData.TILE_HEIGHT);
+					ImageIO.write(croppedImage, "png", file);
 
-                    JOptionPane.showMessageDialog(mainWindow, "Image has been saved.", "Image Saved",
-                            JOptionPane.INFORMATION_MESSAGE);
-                }
-            }
-            catch (Exception ex)
-            {
-                ex.printStackTrace();
-            }
-        }
+					JOptionPane.showMessageDialog(mainWindow, "Image has been saved.", "Image Saved",
+							JOptionPane.INFORMATION_MESSAGE);
+				}
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
 	}
 
 	public void changedUpdate(DocumentEvent e) {
@@ -1002,20 +1007,14 @@ public class MapEditor extends ToolModule implements ActionListener,
 
 	public void adjustmentValueChanged(AdjustmentEvent e) {
 		if (e.getSource().equals(xScroll) || e.getSource().equals(yScroll)) {
-			mapDisplay.setMapXY(xScroll.getValue(), yScroll.getValue());
+			mapDisplay.setMapXYPixel(xScroll.getValue(), yScroll.getValue());
 			updateXYFields();
 			mapDisplay.repaint();
 		}
 	}
 
-	public void setMapXY(int x, int y) {
-		x = Math.min(x, MapData.WIDTH_IN_TILES - mapDisplay.getScreenWidth());
-		x = Math.max(x, 0);
-
-		y = Math.min(y, MapData.HEIGHT_IN_TILES - mapDisplay.getScreenHeight());
-		y = Math.max(y, 0);
-
-		mapDisplay.setMapXY(x, y);
+	public void setMapXYPixel(int x, int y) {
+		mapDisplay.setMapXYPixel(x, y);
 
 		updateXYScrollBars();
 		updateXYFields();
@@ -1030,11 +1029,11 @@ public class MapEditor extends ToolModule implements ActionListener,
 
 	public void mouseWheelMoved(MouseWheelEvent e) {
 		if (e.isControlDown()) { // Horizontal scrolling
-			setMapXY(mapDisplay.getMapX() + (e.getWheelRotation() * 4),
-					mapDisplay.getMapY());
+			setMapXYPixel(mapDisplay.getScrollX() + (e.getWheelRotation() * 4 * MapData.TILE_WIDTH),
+					mapDisplay.getScrollY());
 		} else { // Vertical scrolling
-			setMapXY(mapDisplay.getMapX(),
-					mapDisplay.getMapY() + (e.getWheelRotation() * 4));
+			setMapXYPixel(mapDisplay.getScrollX(),
+					mapDisplay.getScrollY() + (e.getWheelRotation() * 4 * MapData.TILE_HEIGHT));
 		}
 	}
 
@@ -1053,8 +1052,11 @@ public class MapEditor extends ToolModule implements ActionListener,
 	@Override
 	public void componentResized(ComponentEvent arg0) {
 		Dimension newD = mapDisplay.getSize();
-		int newSW = newD.width / 32, newSH = newD.height / 32;
+		int newSW = (int) Math.ceil(newD.width / 32.0);
+		int newSH = 1 + (int) Math.ceil(newD.height / 32.0);
 		mapDisplay.setScreenSize(newSW, newSH);
+		// Reset this in case they lowered the window size and are now off the side
+		mapDisplay.setMapXYPixel(xScroll.getValue(), yScroll.getValue());
 		updateXYScrollBars();
 		updateXYFields();
 		tileSelector.setScreenSize(newSW);
