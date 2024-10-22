@@ -100,7 +100,7 @@ public class MapData {
     }
 
     public void loadExtraResources(Project proj) {
-        importNPCs(new File(proj.getFilename("eb.MiscTablesModule",
+        importNPCs(new File(proj.getFilename("eb.ExpandedTablesModule",
                 "npc_config_table")));
         importSpriteGroups(proj);
         importEnemyData(proj);
