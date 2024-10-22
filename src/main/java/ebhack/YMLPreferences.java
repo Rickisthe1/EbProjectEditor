@@ -149,7 +149,10 @@ public class YMLPreferences
      * @param name Name of preference.
      * @return Value of preference as a <code>boolean</code> or null
      */
-
+    public boolean getValueAsBoolean(String name)
+    {
+        return new Boolean(getValue(name)).booleanValue();
+    }
 
     /**
      * Sets the specified preference to the specified value. Either changes the
